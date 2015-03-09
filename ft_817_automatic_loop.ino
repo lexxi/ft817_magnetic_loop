@@ -21,6 +21,24 @@
 #include <PWMServo.h> 
 #include <EEPROM.h>
 
+//i2c lcd
+#include <Wire.h>
+#include <LCD.h>
+#include <LiquidCrystal_I2C.h>
+
+#define I2C_ADDR    0x27 
+#define BACKLIGHT_PIN     3
+#define En_pin  2
+#define Rw_pin  1
+#define Rs_pin  0
+#define D4_pin  4
+#define D5_pin  5
+#define D6_pin  6
+#define D7_pin  7
+
+LiquidCrystal_I2C	lcd(I2C_ADDR,En_pin,Rw_pin,Rs_pin,D4_pin,D5_pin,D6_pin,D7_pin);
+//i2c lcd
+
 const int addr = 0;            // EEPROM address for saving the current capacitor position
 
 int n = LOW;
@@ -29,7 +47,7 @@ int encoder0PinALast = LOW;
 const int encoder0PinA = 3;    // Encoder PinA
 const int encoder0PinB = 4;    // Encoder PinB
 const int stepTime = 100;      // Mesures slow or fast encoder rotation
-const int bigStep = 10;        // degrees during fast rotation
+const int bigStep = 5;        // degrees during fast rotation --> orig was 10!!
 const int smallStep = 1;       // degrees during slow rotation
 int step;
 
@@ -50,17 +68,30 @@ unsigned long encoderTime;     // used to determine the econcoder rotation speed
 
 int pos;                       // Servo Position helper variable
 int swr;                       // SWR helper variable
-
-const int minPos = 9;          // Minimum Position reachable by the Servo
+unsigned long frq;             // Frequenz from rig
+const int minPos = 1;          // Minimum Position reachable by the Servo
 const int maxPos = 180;        // Maximum Position reachable by the Servo
 
-//PWMServo myservo;
+PWMServo myservo;
 FT817 rig;
 
 void setup() {
+  
+    lcd.begin (16,2);
+    lcd.setBacklightPin(BACKLIGHT_PIN,POSITIVE);
+    lcd.setBacklight(HIGH);
+    lcd.home (); // go home
+    lcd.print("Arduino ML Tuner");
+    lcd.setCursor(1, 1);
+    lcd.print("----OE8KUR----");
+    delay(1500);
+    init_screen();
 
     pinMode (encoder0PinA,INPUT);
     pinMode (encoder0PinB,INPUT);
+    
+    digitalWrite(encoder0PinA, HIGH);
+    digitalWrite(encoder0PinB, HIGH);
   
     Serial.begin(9600);
     SoftwareSerial mySerial(rxPin,txPin);
@@ -77,36 +108,33 @@ void setup() {
     myservo.write(pos);
     Serial.print("Servo positioned to ");
     Serial.println(pos);
+    lcd_update_pos();
     servoTime = millis();
   
 }
 
 void loop() {
   
-    // I can't understand why I need the following line
-    // for now I'll live with it
     rig.begin(9600);
+    
+    frq = rig.getFreqMode();
+    lcd_update_freq();
+
     
     if(( myservo.attached() ) && (millis() > (servoTime + servoTimeout))) {
       myservo.detach();
       Serial.println("Detaching the Servo");
       EEPROM.write(addr, pos);
-      Serial.print("Servo position saved to ");
-      // Saving the current position to the EEPROM
-      // so I can safely turn power off the tuner
-      // when unused
       Serial.println(EEPROM.read(addr));
+      lcd_update_pos();
     }
   
-    // read the state of the pushbutton value:
     buttonState = digitalRead(buttonPin);
 
-    // if the pushbutton is pressed start tuning
     if (buttonState == HIGH) {
         tune();
     }
-    
-    // check the encoder    
+      
     n = digitalRead(encoder0PinA);
     
     if ((encoder0PinALast == LOW) && (n == HIGH)) {
@@ -115,8 +143,7 @@ void loop() {
         myservo.attach(servoPin);
         myservo.write(pos);
       }
-      
-      // Choose between fast or slow move      
+           
       if (millis() - encoderTime > stepTime) {
         step = smallStep;
       } else {
@@ -143,6 +170,7 @@ void loop() {
      
      Serial.print("Position selected by the Encoder: ");
      Serial.println (pos);
+     lcd_update_pos();
      myservo.write(pos);
      servoTime = millis();
      
@@ -156,28 +184,25 @@ void tune() {
     boolean tuned = 0;
     unsigned int quadrant = 0;
     unsigned long sweepTime;
-    unsigned int quadrantSize = 15;
-    unsigned quadrantTime = 150;
+    unsigned int quadrantSize = 9;  // 15  - 9
+    unsigned quadrantTime = 150;  // 150  - 200
   
     Serial.println("At Tune...");
 
-    // Get current mode
     byte mode = rig.getMode();
     Serial.print("The Radio is in mode ");
     Serial.println(mode);
 
-    // Set FM for Tuning
     rig.setMode(FT817_MODE_FM);
     
-    // Set TX on
     rig.setPTTOn();
     delay(300);
-    
-    // read the first SWR measure   
+     
     swr = rig.getSWR();
     
     Serial.print("Initial SWR ");
     Serial.println(swr);
+    lcd_update_swr();
     
     if (! rig.getTXSuccess()) {
       rig.setPTTOff();
@@ -188,7 +213,7 @@ void tune() {
       return;
     }
     
-    if (swr <= 3) {
+    if (swr <= 2) {   //was 3
       rig.setPTTOff();
       delay(300);
       rig.setMode(mode);
@@ -243,8 +268,9 @@ void tune() {
         swr = rig.getSWR();
         Serial.print(" SWR: ");
         Serial.println(swr);
+        lcd_update_swr();
   
-        if (swr == 0) {
+        if (swr <= 0) {   // alter wert war == 0
               
           Serial.println(" SWR 0 Found!");
           tuned = 1;
@@ -268,14 +294,18 @@ void tune() {
           myservo.write(pos);
           Serial.print("Trying pos ");
           Serial.print(pos);
+          lcd_update_pos();
           delay(50);
           swr = rig.getSWR();
           Serial.print(" SWR: ");
           Serial.println(swr);
+          lcd_update_swr();
           
-          if (swr == 0) {
+          if (swr <= 1) {
              Serial.print("Tuned to pos ");
              Serial.println(pos);
+             lcd_update_pos();
+             lcd_update_swr();
              tuned = 1;
              break;
           } 
@@ -294,6 +324,8 @@ void tune() {
     delay(300);
     // Switch back to original mode
     rig.setMode(mode);
+    Serial.print("Mode tuned: ");
+    Serial.println(mode);
     
     if (tuned) {
       successBeep();
@@ -347,3 +379,64 @@ void successBeep() {
    
 }
 
+void init_screen()
+{
+  lcd.clear(); 
+  lcd.setCursor (0,0); 
+  lcd.print("SWR: ");
+  lcd.setCursor (5,0); 
+  lcd.print("   ");
+  
+  lcd.setCursor(9,0);
+  lcd.print("Pos: ");  
+  lcd.print("   ");
+  
+  lcd.setCursor(0,1);
+  lcd.print("FRQ: ");  
+  lcd.print("    ");
+ }
+ 
+ void lcd_update_pos()
+ {
+  lcd.setCursor (13,0);
+  if (pos < 100){
+    lcd.print(" ");
+    }
+    if (pos < 10){
+    lcd.print(" ");
+    }
+    lcd.print (pos);
+ }
+ 
+ void lcd_update_freq()
+ {
+  lcd.setCursor (4,1);
+  //t_frq = frq/100;
+  if (frq < 1000000){
+    lcd.print(" ");
+    }
+  if (frq < 100000){
+    lcd.print(" ");
+    } 
+  if (frq < 10000){
+    lcd.print(" ");
+    } 
+
+   lcd.print((frq/100), DEC);
+   lcd.print(",");
+   lcd.print((frq)%100, DEC); 
+   lcd.print(" kHz");  
+   if((frq)%100 < 10)
+   {
+     lcd.setCursor (15,1);
+     lcd.print(" ");
+   }
+  }
+ 
+ void lcd_update_swr()
+ {
+  lcd.setCursor(4,0);
+  lcd.print(swr);
+  } 
+ 
+ 

@@ -1,18 +1,18 @@
 /*
 
-    Apr 21th 2012
+    09.03.2015
     
-    FT-817 Automatic Loop
-    by Alain De Carolis, WW3WW
-    version 1.0
-    
+    This is a fork of Alain De Carolis, WW3WW, FT-817 Automatic Loop Tuner (https://code.google.com/p/ft-817-automatic-loop/)
+   
     This progam uses a modified version of the qrptracker library
     written by Bruce Gordon Robertson, VE9QRP
     
     released under the GPL V3 license
     
-    for more info and full source code visit
-    https://code.google.com/p/ft-817-automatic-loop/
+    I have added a 16x2 LCD display with some infos of the rig an the possibility to work with a digital interface and 
+    this tuner.
+    
+    
     
 */
 

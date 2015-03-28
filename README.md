@@ -11,3 +11,4 @@ released under the GPL V3 license
 I have added a 16x2 LCD display with some infos of the rig an the possibility to work with a digital interface and 
 this tuner.
 
+Board by OE8WUR

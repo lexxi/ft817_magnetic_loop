@@ -46,7 +46,7 @@ int encoder0PinALast = LOW;
 
 const int encoder0PinA = 3;    // Encoder PinA
 const int encoder0PinB = 4;    // Encoder PinB
-const int stepTime = 100;      // Mesures slow or fast encoder rotation
+const int stepTime = 150;      // Mesures slow or fast encoder rotation
 const int bigStep = 5;        // degrees during fast rotation --> orig was 10!!
 const int smallStep = 1;       // degrees during slow rotation
 int step;
@@ -101,8 +101,6 @@ void setup() {
     //internal pullup
     digitalWrite(relaisPin, HIGH); 
     digitalWrite(ledPinON, HIGH);
-    //digitalWrite(encoder0PinA, HIGH);
-    //digitalWrite(encoder0PinB, HIGH);
   
     Serial.begin(9600);
     SoftwareSerial mySerial(rxPin,txPin);
@@ -115,6 +113,9 @@ void setup() {
     Serial.print("Servo positioned to ");
     Serial.println(pos);
     lcd_update_pos();
+    
+    lcd.setCursor(5,0);
+    lcd.print("Un");
     servoTime = millis();
   
 }
@@ -436,7 +437,7 @@ void init_screen()
  
  void lcd_update_swr()
  {
-  lcd.setCursor(4,0);
+  lcd.setCursor(5,0);
   lcd.print(swr);
   } 
  

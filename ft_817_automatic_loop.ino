@@ -1,6 +1,6 @@
 /*
 
-    09.03.2015
+    28.03.2015
     
     This is a fork of Alain De Carolis, WW3WW, FT-817 Automatic Loop Tuner (https://code.google.com/p/ft-817-automatic-loop/)
    
@@ -53,6 +53,7 @@ int step;
 
 const int rxPin = 8;
 const int txPin = 7;
+const int relayPin = 6;        // Pin for relay to switch DataIN/DataOUT
 
 const int buttonPin = 5;       // tuning button - push to tune
 int buttonState = 0;           // tune button
@@ -89,17 +90,22 @@ void setup() {
 
     pinMode (encoder0PinA,INPUT);
     pinMode (encoder0PinB,INPUT);
+    pinMode(buttonPin, INPUT);
+    pinMode(buttonPin, INPUT);
     
-    digitalWrite(encoder0PinA, HIGH);
-    digitalWrite(encoder0PinB, HIGH);
+    pinMode(ledPin, OUTPUT);
+    pinMode(ledPinON, OUTPUT);
+
+
+    digitalWrite(relayPin, HIGH); 
+    //digitalWrite(encoder0PinA, HIGH);
+    //digitalWrite(encoder0PinB, HIGH);
   
     Serial.begin(9600);
     SoftwareSerial mySerial(rxPin,txPin);
     rig.assignSerial(mySerial);
     
-    pinMode(ledPin, OUTPUT);
-    pinMode(ledPinON, OUTPUT);
-    pinMode(buttonPin, INPUT);
+
     
     digitalWrite(ledPinON, HIGH);
     

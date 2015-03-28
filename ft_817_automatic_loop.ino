@@ -53,7 +53,7 @@ int step;
 
 const int rxPin = 8;
 const int txPin = 7;
-const int relayPin = 6;        // Pin for relay to switch DataIN/DataOUT
+const int relaisPin = 6;        // Pin for relais   to switch DataIN/DataOUT
 
 const int buttonPin = 5;       // tuning button - push to tune
 int buttonState = 0;           // tune button
@@ -87,27 +87,27 @@ void setup() {
     lcd.print("----OE8KUR----");
     delay(1500);
     init_screen();
-
-    pinMode (encoder0PinA,INPUT);
-    pinMode (encoder0PinB,INPUT);
-    pinMode(buttonPin, INPUT);
+    
+    //pinmode input
+    pinMode(encoder0PinA,INPUT);
+    pinMode(encoder0PinB,INPUT);
     pinMode(buttonPin, INPUT);
     
+    //pinmode output
+    pinMode(relaisPin, OUTPUT);
     pinMode(ledPin, OUTPUT);
     pinMode(ledPinON, OUTPUT);
 
-
-    digitalWrite(relayPin, HIGH); 
+    //internal pullup
+    digitalWrite(relaisPin, HIGH); 
+    digitalWrite(ledPinON, HIGH);
     //digitalWrite(encoder0PinA, HIGH);
     //digitalWrite(encoder0PinB, HIGH);
   
     Serial.begin(9600);
     SoftwareSerial mySerial(rxPin,txPin);
     rig.assignSerial(mySerial);
-    
-
-    
-    digitalWrite(ledPinON, HIGH);
+   
     
     pos = EEPROM.read(addr);
     myservo.attach(servoPin);
@@ -234,20 +234,15 @@ void tune() {
       servoTime = millis();
     }
 
-    // Move to one end
-    // TODO: choose the right end depending on where the capacitor
-    // already is
     
     myservo.write(minPos);
     servoTime = millis();
-    
-    // give some time to the servo to reach its position
-    // a standard HS-322HD does 0.19 sec/60° at 4.8V
+
     
     delay(1500); 
     
     Serial.println("Starting the SWR Samples");
-    // This is faster than sampling one degree at a time
+ 
     for( pos = minPos; pos <= maxPos; pos += quadrantSize ) {
       
       quadrant++;
@@ -276,7 +271,7 @@ void tune() {
         Serial.println(swr);
         lcd_update_swr();
   
-        if (swr <= 0) {   // alter wert war == 0
+        if (swr <= 0) {   
               
           Serial.println(" SWR 0 Found!");
           tuned = 1;
